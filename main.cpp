@@ -6,6 +6,9 @@
 #include "ethhdr.h"
 #include "arphdr.h"
 
+#define SUCCESS 1
+#define FAIL -1
+
 #pragma pack(push, 1) // 구조체 패딩 비트에 대한 내용. pop 나올 때 까지 패딩을 없애겠단 뜻
 struct EthArpPacket final {
 	EthHdr eth_;
@@ -24,22 +27,48 @@ void usage() {
 }
 
 // owner의 mac을 구해오는
-int getMyMac(Mac& mac, string& dev) {
+void getMyMac(Mac& mac, string& dev) {
 	// 리눅스의 경우
 	// /sys/class/net/[dev]/address
 	// 위 경로에 mac 주소가 char로 저장되어 있는데 eth0의 경우 argv에서 입력받은 dev를 넣어줘야될거 같음.
 	ifstream fin;
-	string path = "sys/class/net/" + dev +"/address";
+	string path = "/sys/class/net/" + dev +"/address";
 	fin.open(path);
 
 	// 에러 체크
-	if (!fin.is_open()) {
-		cerr << ""
+	if (fin.fail()) {
+		cerr << "Error: " << strerror(errno);
 	}
+
+	string tmp;
+	fin >> tmp;
+	mac = tmp;
+	// test code
+	cout << (string)mac;
+	// 맥 체크 굿
+
+	fin.close();
+}
+
+int sendARPRequest() {
+	
 	
 }
 
+int sendARPReply() {
+	
+}
+
+void test(void) {
+	Mac mac;
+	string dev = "enp0s3";
+	getMyMac(mac, dev);
+}
+
 int main(int argc, char* argv[]) {
+	test();
+
+	/*
 	// 입력 인자 개수가 4개 이상이어야 하며 짝수여야함.
 	if (argc < 4 || argc % 2 != 0) {
 		usage();
@@ -81,4 +110,5 @@ int main(int argc, char* argv[]) {
 	}
 
 	pcap_close(handle);
+	*/
 }
