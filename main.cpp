@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <unordered_map>
 #include "ethhdr.h"
 #include "arphdr.h"
 
@@ -84,10 +85,12 @@ int sendARP(EthArpPacket& packet, pcap_t* handle) {
 	return SUCCESS;
 }
 
-int parsePacket(const u_char* packet, EthArpPacket& send, EthArpPacket& out) {
+//int parsePacket(const u_char* packet, EthArpPacket& send, std::unordered_map<Mac, uint32_t>& table) {
+int parsePacket(EthArpPacket& header, EthArpPacket& send, std::unordered_map<Mac, uint32_t>& table) {
+
 	// ETH-ARP 패킷인지 확인하고 
-	EthArpPacket header;
-	memcpy(&header, packet, 26);
+	//EthArpPacket header;
+	//memcpy(&header, packet, 26);
 	
 	// => ETH의 type정보를 확인
 	if(header.eth_.type_ != htons(EthHdr::Arp)) {
@@ -105,7 +108,10 @@ int parsePacket(const u_char* packet, EthArpPacket& send, EthArpPacket& out) {
 	if(send.arp_.sip_ != header.arp_.tip_) return FAIL;
 	if(send.arp_.tip_ != header.arp_.sip_) return FAIL;
 
+	// 찾고자한 패킷이므로 Mac hash table에 추가?
+	// 어차피 2개만 찾으면 되니까 그냥 변수에 저장
 	
+	table.insert({header.arp_.smac_, uint32_t(header.arp_.sip_)});
 
 
 	// want에 적힌 mac, ip 정보를 매칭하고
@@ -131,9 +137,34 @@ void initArg(char* argv[], Ip& sender, Ip& target) {
 }
 
 void test_1(void) {
-	Ip test;
-	test = string("1.1.1.1");
-	cout << string(test);
+	std::unordered_map <Mac, uint32_t> table;
+	EthArpPacket packet1, packet2;
+
+	Mac smac1 = Mac("08:00:27:2b:b1:96");
+	Mac dmac = Mac("92:dd:52:5c:ee:81");
+
+	Mac smac2 = Mac("08:00:27:2b:b1:96");
+	Ip sip = Ip("192.168.0.13");
+	Mac tmac = Mac("92:dd:52:5c:ee:81");
+	Ip tip = Ip("192.168.0.7");
+	// 패킷 2개 만들고
+	fillPacket(smac1, dmac, smac2, sip, tmac, tip, ArpHdr::Request, packet1);
+	// 넣기
+
+	smac1 = Mac("92:dd:52:5c:ee:81");
+	dmac = Mac("08:00:27:2b:b1:96");
+	smac2 = Mac("92:dd:52:5c:ee:81");
+	sip = Ip("192.168.0.7");
+	tmac = Mac("08:00:27:2b:b1:96");
+	tip = Ip("192.168.0.13");
+	fillPacket(smac1, dmac, smac2, sip, tmac, tip, ArpHdr::Reply, packet2);
+
+	cout << parsePacket(packet2, packet1, table) << std::endl;
+
+	for(auto i : table) {
+		cout << string(i.first) << ' ' << string(Ip(ntohl(i.second))) << std::endl;
+	}
+
 }
 
 void test(void) {
