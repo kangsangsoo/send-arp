@@ -8,7 +8,8 @@
 
 #define SUCCESS 1
 #define FAIL -1
-
+#define REQUEST 1
+#define REPLY -1
 #pragma pack(push, 1) // 구조체 패딩 비트에 대한 내용. pop 나올 때 까지 패딩을 없애겠단 뜻
 struct EthArpPacket final {
 	EthHdr eth_;
@@ -50,14 +51,17 @@ void getMyMac(Mac& mac, string& dev) {
 	fin.close();
 }
 
-int sendARPRequest() {
+int sendARP(Mac& smac1, Mac& dmac, Mac& smac2, Ip& sip, Mac& tmac, Ip& dip, int TYPE) {
+	// TYPE == 1 : Request
+	// TYPE == -1: Reply
+
+	// 패킷 구성
+	// ...
 	
-	
+	// 전송
+
 }
 
-int sendARPReply() {
-	
-}
 
 void test(void) {
 	Mac mac;
