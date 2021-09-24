@@ -28,12 +28,12 @@ void usage() {
 }
 
 // owner의 mac을 구해오는
-void getMyMac(Mac& mac, string& dev) {
+void getMyMac(Mac& mac, char* dev) {
 	// 리눅스의 경우
 	// /sys/class/net/[dev]/address
 	// 위 경로에 mac 주소가 char로 저장되어 있는데 eth0의 경우 argv에서 입력받은 dev를 넣어줘야될거 같음.
 	ifstream fin;
-	string path = "/sys/class/net/" + dev +"/address";
+	string path = "/sys/class/net/" + string(dev) +"/address";
 	fin.open(path);
 
 	// 에러 체크
@@ -47,6 +47,8 @@ void getMyMac(Mac& mac, string& dev) {
 	// test code
 	cout << (string)mac;
 	// 맥 체크 굿
+
+	// 맥 바탕으로 IP주소까지 구함
 
 	fin.close();
 }
@@ -74,7 +76,7 @@ int sendARP(EthArpPacket& packet, pcap_t* handle) {
 	// TYPE에는 ArpHdr::Reply   : Reply
 
 	// 패킷 구성
-	
+	// 은 fillPacket에서 미리 진행
 
 	// 전송
 	int res = pcap_sendpacket(handle, reinterpret_cast<const u_char*>(&packet), sizeof(EthArpPacket));
@@ -85,12 +87,19 @@ int sendARP(EthArpPacket& packet, pcap_t* handle) {
 	return SUCCESS;
 }
 
-//int parsePacket(const u_char* packet, EthArpPacket& send, std::unordered_map<Mac, uint32_t>& table) {
-int parsePacket(EthArpPacket& header, EthArpPacket& send, std::unordered_map<Mac, uint32_t>& table) {
+int parsePacket(pcap_t* handle, EthArpPacket& send, std::unordered_map<Mac, uint32_t>& table) {
+//int parsePacket(EthArpPacket& header, EthArpPacket& send, std::unordered_map<Mac, uint32_t>& table) {
+	struct pcap_pkthdr* pkheader;
+	const u_char* packet;
 
+	// handler 가지고 와서 패킷 수신
+	// 여기서 붵 시작 --------------------------------------------------------------------------------------
+	// time out? 강튼 것도 필요할듯 packet 안오면 다시 전송하게
+
+	int res = pcap_next_ex(handle, &pkheader, &packet);
 	// ETH-ARP 패킷인지 확인하고 
-	//EthArpPacket header;
-	//memcpy(&header, packet, 26);
+	EthArpPacket header;
+	memcpy(&header, packet, 26);
 	
 	// => ETH의 type정보를 확인
 	if(header.eth_.type_ != htons(EthHdr::Arp)) {
@@ -131,9 +140,27 @@ int parsePacket(EthArpPacket& header, EthArpPacket& send, std::unordered_map<Mac
 
 }
 
+int getMac(Mac& myMac, Ip& tip, pcap_t* handle, Mac& mac) {
+	EthArpPacket packet;
+	
+	Ip anyIp = Ip(uint32_t(tip) + 1); 
+	fillPacket(myMac, Mac::broadcastMac(), myMac, anyIp, Mac::nullMac(), tip, ArpHdr::Request, packet);
+	sendARP(packet, handle);
+	// receive
+	parsePacket()
+
+}
+
 void initArg(char* argv[], Ip& sender, Ip& target) {
 	sender = string(argv[0]);
 	target = string(argv[1]);
+}
+
+void test_2(void) {
+	// ip는 source랑 target하고만 안겹치게 해서 보내도 되는지? : yes
+	Ip i = Ip("192.168.0.7");
+	Ip t = Ip(uint32_t(i) + 1);
+	cout << string(t) << std::endl;
 }
 
 void test_1(void) {
@@ -159,7 +186,7 @@ void test_1(void) {
 	tip = Ip("192.168.0.13");
 	fillPacket(smac1, dmac, smac2, sip, tmac, tip, ArpHdr::Reply, packet2);
 
-	cout << parsePacket(packet2, packet1, table) << std::endl;
+	//cout << parsePacket(packet2, packet1, table) << std::endl;
 
 	for(auto i : table) {
 		cout << string(i.first) << ' ' << string(Ip(ntohl(i.second))) << std::endl;
@@ -171,7 +198,7 @@ void test(void) {
 	Mac mac;
 	char* dev = "enp0s3";
 	string dev_= dev;
-	getMyMac(mac, dev_);
+	//getMyMac(mac, dev_);
 	
 	Mac smac1 = Mac("08:00:27:2b:b1:96");
 	Mac dmac = Mac("92:dd:52:5c:ee:81");
@@ -186,10 +213,13 @@ void test(void) {
 	//sendARP(smac1, dmac, smac2, sip, tmac, tip, ArpHdr::Reply, handle);
 }
 
-int main(int argc, char* argv[]) {
-	test_1();
 
-	/*
+
+int main(int argc, char* argv[]) {
+	test_2();
+
+	return 0;
+	
 	// 입력 인자 개수가 4개 이상이어야 하며 짝수여야함.
 	if (argc < 4 || argc % 2 != 0) {
 		usage();
@@ -204,6 +234,23 @@ int main(int argc, char* argv[]) {
 		return -1;
 	}
 
+	// MAC 찾아오기
+	Mac myMac;
+	getMyMac(myMac, dev);
+	Ip sender, target;
+	
+	int now = 2;
+	while(now <= argc) {
+		initArg(&argv[now], sender, target);
+
+		EthArpPacket packet;
+		// sender랑 target Mac 찾기
+		//fillPacket()
+
+		// sender한테 내가 target인 척하기
+	}
+
+	/*
 	// flow를 생각해보면
 
 	// sender, target, mymac만 아는 상태에서
