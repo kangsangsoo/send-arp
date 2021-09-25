@@ -96,7 +96,6 @@ int parsePacket(pcap_t* handle, EthArpPacket& send, vector<pair<Ip, Mac>>& table
 			return FAIL;
 		}
 		
-
 		// ETH-ARP 패킷인지 확인하고 
 		EthArpPacket header;
 		memcpy(&header, packet, 42);
