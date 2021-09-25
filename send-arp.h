@@ -8,6 +8,7 @@
 #include "ethhdr.h"
 #include "arphdr.h"
 // getMyIp
+#include <stdio.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
