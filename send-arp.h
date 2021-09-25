@@ -9,6 +9,7 @@
 #include "arphdr.h"
 // getMyIp
 #include <stdio.h>
+#include <unistd.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
@@ -126,24 +127,24 @@ int getMac(Ip& tip, pcap_t* handle, vector<pair<Ip, Mac>>& table) {
 
 uint32_t getMyIp(char* dev) {
 	int fd;
-    struct ifreq ifr;
+    	struct ifreq ifr;
  
-    fd = socket(AF_INET, SOCK_DGRAM, 0);
+    	fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if(fd < 0) {
 		cerr << "Error: " << strerror(errno);
 		return FAIL;
 	}
-    ifr.ifr_addr.sa_family = AF_INET;
-    strncpy(ifr.ifr_name, dev, IFNAMSIZ -1);
+    	ifr.ifr_addr.sa_family = AF_INET;
+   	strncpy(ifr.ifr_name, dev, IFNAMSIZ -1);
     
-    ioctl(fd, SIOCGIFADDR, &ifr);
+   	ioctl(fd, SIOCGIFADDR, &ifr);
 	if(fd < 0) {
 		cerr << "Error: " << strerror(errno);
 		return FAIL;
 	}
-    close(fd);
+    	close(fd);
      
-    return ntohl(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr.s_addr);
+    	return ntohl(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr.s_addr);
 }
 
 int getMyInfo(char* dev, vector<pair<Ip, Mac>>& table) {
